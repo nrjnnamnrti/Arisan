@@ -38,9 +38,22 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .nav-item {
+            transition: all 0.2s ease-in-out;
+        }
         .nav-item.active {
             color: #16a34a;
-            border-bottom: 2px solid #16a34a;
+            background-color: #f0fdf4;
+        }
+        /* Mobile menu styling */
+        @media (max-width: 767px) {
+            .nav-item { border-top: 2px solid transparent; }
+            .nav-item.active { border-top: 2px solid #16a34a; }
+        }
+        /* Desktop menu styling */
+        @media (min-width: 768px) {
+            .nav-item { border-left: 4px solid transparent; }
+            .nav-item.active { border-left: 4px solid #16a34a; }
         }
         /* Confetti animation styles */
         .confetti {
@@ -56,7 +69,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col md:flex-row overflow-hidden">
+<body class="bg-gray-50 text-gray-800 font-sans h-[100dvh] flex flex-col md:flex-row overflow-hidden">
 
     <!-- Modal Overlay (Custom Alert) -->
     <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center fade-in">
@@ -91,7 +104,7 @@
     <div id="confettiContainer" class="fixed inset-0 pointer-events-none z-40 overflow-hidden hidden"></div>
 
     <!-- Sidebar / Bottom Nav -->
-    <nav class="bg-white shadow-md md:w-64 flex-shrink-0 flex md:flex-col justify-around md:justify-start order-last md:order-first h-16 md:h-full z-10 relative">
+    <nav class="bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.05)] md:shadow-md md:w-64 flex-shrink-0 flex md:flex-col justify-around md:justify-start order-last md:order-first h-16 md:h-full z-20 relative">
         <div class="hidden md:flex items-center justify-center h-20 border-b border-gray-100 px-6">
             <div class="flex items-center gap-3 text-brand-600">
                 <i class="fas fa-sack-dollar text-2xl"></i>
@@ -398,24 +411,11 @@
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active', 'text-brand-600');
                 el.classList.add('text-gray-500');
-                
-                // For desktop borders
-                if(window.innerWidth > 768) {
-                   el.style.borderBottom = 'none';
-                   el.style.borderLeft = 'none';
-                } else {
-                   el.style.borderBottom = 'none';
-                }
             });
             
             const activeNav = document.getElementById('nav-' + viewId);
             activeNav.classList.remove('text-gray-500');
             activeNav.classList.add('active', 'text-brand-600');
-            
-            if(window.innerWidth > 768) {
-                activeNav.style.borderLeft = '4px solid #16a34a';
-                activeNav.style.borderBottom = 'none';
-            }
 
             // Hide all views, show targeted view
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
@@ -872,25 +872,6 @@
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             updateUI();
-            // Handle active styling for mobile resize fix
-            window.addEventListener('resize', () => {
-                const activeNav = document.querySelector('.nav-item.active');
-                if(activeNav) {
-                    if(window.innerWidth > 768) {
-                        activeNav.style.borderLeft = '4px solid #16a34a';
-                        activeNav.style.borderBottom = 'none';
-                    } else {
-                        activeNav.style.borderBottom = '2px solid #16a34a';
-                        activeNav.style.borderLeft = 'none';
-                    }
-                }
-            });
-            // initial border setup
-            const activeNav = document.querySelector('.nav-item.active');
-            if(window.innerWidth > 768) {
-                activeNav.style.borderLeft = '4px solid #16a34a';
-                activeNav.style.borderBottom = 'none';
-            }
         });
 
     </script>
