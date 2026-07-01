@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arisan Keluarga</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styles for animations and transitions */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-item.active {
+            color: #16a34a;
+            border-bottom: 2px solid #16a34a;
+        }
+        /* Confetti animation styles */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+        }
+        @keyframes fall {
+            0% { opacity: 1; transform: translateY(-100vh) rotate(0deg); }
+            100% { opacity: 1; transform: translateY(100vh) rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Modal Overlay (Custom Alert) -->
+    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center fade-in">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-900 mb-2">Pemberitahuan</h3>
+            <p id="modalMessage" class="text-gray-600 mb-6">Pesan di sini.</p>
+            <div class="flex justify-end">
+                <button onclick="closeModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700 transition">
+                    Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirm Overlay -->
+    <div id="modalConfirmOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center fade-in">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 id="modalConfirmTitle" class="text-lg font-bold text-gray-900 mb-2">Konfirmasi</h3>
+            <p id="modalConfirmMessage" class="text-gray-600 mb-6">Apakah Anda yakin?</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeConfirmModal()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition">
+                    Batal
+                </button>
+                <button id="btn-confirm-action" class="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confetti Container -->
+    <div id="confettiContainer" class="fixed inset-0 pointer-events-none z-40 overflow-hidden hidden"></div>
+
+    <!-- Sidebar / Bottom Nav -->
+    <nav class="bg-white shadow-md md:w-64 flex-shrink-0 flex md:flex-col justify-around md:justify-start order-last md:order-first h-16 md:h-full z-10 relative">
+        <div class="hidden md:flex items-center justify-center h-20 border-b border-gray-100 px-6">
+            <div class="flex items-center gap-3 text-brand-600">
+                <i class="fas fa-sack-dollar text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-tight">Arisan<span class="text-gray-800">Keluarga</span></h1>
+            </div>
+        </div>
+        
+        <div class="flex md:flex-col flex-1 w-full md:p-4 gap-1 md:gap-2 overflow-x-auto md:overflow-visible items-center md:items-stretch">
+            <button onclick="navigate('beranda')" id="nav-beranda" class="nav-item active flex-1 md:flex-none flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 md:rounded-lg hover:bg-brand-50 transition-colors text-gray-500 text-xs md:text-base font-medium">
+                <i class="fas fa-home md:w-5 text-center"></i>
+                <span>Beranda</span>
+            </button>
+            <button onclick="navigate('anggota')" id="nav-anggota" class="nav-item flex-1 md:flex-none flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 md:rounded-lg hover:bg-brand-50 transition-colors text-gray-500 text-xs md:text-base font-medium">
+                <i class="fas fa-users md:w-5 text-center"></i>
+                <span>Anggota</span>
+            </button>
+            <button onclick="navigate('iuran')" id="nav-iuran" class="nav-item flex-1 md:flex-none flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 md:rounded-lg hover:bg-brand-50 transition-colors text-gray-500 text-xs md:text-base font-medium">
+                <i class="fas fa-money-bill-wave md:w-5 text-center"></i>
+                <span>Iuran</span>
+            </button>
+            <button onclick="navigate('kocok')" id="nav-kocok" class="nav-item flex-1 md:flex-none flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 md:rounded-lg hover:bg-brand-50 transition-colors text-gray-500 text-xs md:text-base font-medium">
+                <i class="fas fa-dice md:w-5 text-center"></i>
+                <span>Kocok!</span>
+            </button>
+            <button onclick="navigate('riwayat')" id="nav-riwayat" class="nav-item flex-1 md:flex-none flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 md:rounded-lg hover:bg-brand-50 transition-colors text-gray-500 text-xs md:text-base font-medium">
+                <i class="fas fa-history md:w-5 text-center"></i>
+                <span>Riwayat</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 relative">
+        <!-- View: Beranda -->
+        <div id="view-beranda" class="view-section fade-in">
+            <header class="mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Halo, Keluarga! 👋</h2>
+                <p class="text-gray-500 mt-1">Selamat datang di aplikasi pengelolaan Arisan Keluarga.</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                <!-- Stat Card 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Total Anggota</p>
+                        <p class="text-2xl font-bold text-gray-900" id="stat-total-anggota">0</p>
+                    </div>
+                </div>
+                <!-- Stat Card 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Periode Saat Ini</p>
+                        <p class="text-2xl font-bold text-gray-900" id="stat-periode">Ke-1</p>
+                    </div>
+                </div>
+                <!-- Stat Card 3 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xl">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">Total Terkumpul (Periode Ini)</p>
+                        <p class="text-2xl font-bold text-gray-900" id="stat-terkumpul">Rp 0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Pengaturan Arisan</h3>
+                    <button onclick="editSettings()" class="text-brand-600 hover:text-brand-700 text-sm font-medium">
+                        <i class="fas fa-edit mr-1"></i> Ubah
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Nominal Iuran per Anggota</p>
+                        <p class="font-bold text-gray-900" id="setting-nominal">Rp 100.000</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-xs text-gray-500 mb-1">Total Putaran Selesai</p>
+                        <p class="font-bold text-gray-900" id="setting-selesai">0 dari 0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Anggota -->
+        <div id="view-anggota" class="view-section hidden fade-in">
+            <header class="mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Daftar Anggota</h2>
+                    <p class="text-gray-500 mt-1">Kelola peserta arisan keluarga.</p>
+                </div>
+            </header>
+
+            <!-- Add Member Form -->
+            <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                <form id="form-tambah-anggota" class="flex flex-col md:flex-row gap-3" onsubmit="event.preventDefault(); tambahAnggota();">
+                    <input type="text" id="input-nama-anggota" placeholder="Masukkan nama anggota baru..." required
+                           class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                    <button type="submit" class="bg-brand-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-brand-700 transition-colors whitespace-nowrap">
+                        <i class="fas fa-plus mr-2"></i>Tambah
+                    </button>
+                </form>
+            </div>
+
+            <!-- Members List -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-sm">
+                                <th class="p-4 font-medium">No</th>
+                                <th class="p-4 font-medium">Nama Anggota</th>
+                                <th class="p-4 font-medium">Status Pemenang</th>
+                                <th class="p-4 font-medium text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-anggota">
+                            <!-- Rows generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-anggota" class="p-8 text-center text-gray-500 hidden">
+                    <i class="fas fa-users-slash text-4xl mb-3 text-gray-300"></i>
+                    <p>Belum ada anggota arisan. Silakan tambah anggota di atas.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Iuran -->
+        <div id="view-iuran" class="view-section hidden fade-in">
+            <header class="mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Catatan Iuran</h2>
+                <p class="text-gray-500 mt-1">Tandai anggota yang sudah membayar untuk periode <span id="label-periode-iuran" class="font-bold">1</span>.</p>
+            </header>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                    <div>
+                        <p class="text-sm text-gray-500">Nominal per orang</p>
+                        <p class="text-lg font-bold text-gray-900" id="iuran-nominal-display">Rp 100.000</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-500">Total Terkumpul</p>
+                        <p class="text-xl font-bold text-brand-600" id="iuran-terkumpul-display">Rp 0</p>
+                    </div>
+                </div>
+
+                <div id="list-bayar-iuran" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <!-- Checkboxes generated by JS -->
+                </div>
+                
+                <div id="empty-iuran" class="p-8 text-center text-gray-500 hidden">
+                    <p>Tambahkan anggota terlebih dahulu untuk mengelola iuran.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Kocok -->
+        <div id="view-kocok" class="view-section hidden fade-in flex flex-col h-full">
+            <header class="mb-6 text-center">
+                <h2 class="text-3xl font-bold text-gray-800">Pengundian Arisan! 🎉</h2>
+                <p class="text-gray-500 mt-1">Siapa yang akan mendapatkan arisan pada Periode ke-<span id="label-periode-kocok" class="font-bold">1</span>?</p>
+            </header>
+
+            <div class="flex-1 flex flex-col items-center justify-center min-h-[400px]">
+                <div class="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 w-full max-w-md text-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-400 to-brand-600"></div>
+                    
+                    <div class="mb-8">
+                        <p class="text-sm text-gray-500 font-medium mb-2 uppercase tracking-wide">Kandidat Pemenang</p>
+                        <div class="flex flex-wrap justify-center gap-2 mb-6" id="kandidat-badges">
+                            <!-- Badges generated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="h-32 flex items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 mb-8 overflow-hidden relative">
+                        <!-- Name scroller container -->
+                        <div id="slot-machine-name" class="text-4xl font-black text-gray-800 tracking-tight absolute w-full transition-transform duration-100">
+                            ❓
+                        </div>
+                    </div>
+
+                    <button id="btn-kocok" onclick="mulaiKocok()" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 text-white text-xl font-bold py-4 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-1 transition-all active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                        <i class="fas fa-random mr-2"></i> KOCOK SEKARANG!
+                    </button>
+                    
+                    <p id="kocok-warning" class="text-red-500 text-sm mt-4 hidden">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Tidak ada kandidat yang memenuhi syarat (sudah bayar & belum menang).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Riwayat -->
+        <div id="view-riwayat" class="view-section hidden fade-in">
+            <header class="mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Riwayat Pemenang</h2>
+                <p class="text-gray-500 mt-1">Daftar anggota yang telah mendapatkan arisan.</p>
+            </header>
+
+            <div class="relative max-w-3xl mx-auto">
+                <div id="timeline-riwayat" class="space-y-6">
+                    <!-- History items generated by JS -->
+                </div>
+                <div id="empty-riwayat" class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-500 hidden">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-history text-2xl text-gray-400"></i>
+                    </div>
+                    <p>Belum ada riwayat pemenang arisan.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Edit Pengaturan -->
+    <div id="modalSettings" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center fade-in">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Pengaturan Arisan</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nominal Iuran (Rp)</label>
+                <input type="number" id="input-setting-nominal" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+            <div class="mb-6 pt-4 border-t border-gray-100">
+                <label class="block text-sm font-medium text-red-600 mb-1">Zona Berbahaya</label>
+                <button onclick="confirmReset()" class="w-full bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg font-medium hover:bg-red-100 transition text-left flex justify-between items-center">
+                    <span>Mulai Ulang Arisan</span>
+                    <i class="fas fa-undo"></i>
+                </button>
+                <p class="text-xs text-gray-400 mt-1">Mereset periode dan riwayat. Nama anggota akan tetap dipertahankan.</p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeSettings()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition">Batal</button>
+                <button onclick="saveSettings()" class="bg-brand-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700 transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        /* === STATE MANAGEMENT === */
+        let state = {
+            members: [
+                // Contoh Data Awal (Mock Data)
+                { id: '1', name: 'Bapak Budi', hasWon: false, hasPaidCurrent: false },
+                { id: '2', name: 'Ibu Siti', hasWon: false, hasPaidCurrent: false },
+                { id: '3', name: 'Tante Ani', hasWon: false, hasPaidCurrent: false }
+            ],
+            currentPeriod: 1,
+            nominal: 100000,
+            history: [] // { period: 1, winnerName: 'Bapak Budi', amount: 300000, date: '...' }
+        };
+
+        /* === UTILITIES === */
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        }
+
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        // Custom Modal UI
+        function showModal(title, message) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+
+        let confirmActionCallback = null;
+
+        function showConfirmModal(title, message, callback) {
+            document.getElementById('modalConfirmTitle').innerText = title;
+            document.getElementById('modalConfirmMessage').innerText = message;
+            confirmActionCallback = callback;
+            document.getElementById('modalConfirmOverlay').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('modalConfirmOverlay').classList.add('hidden');
+            confirmActionCallback = null;
+        }
+
+        document.getElementById('btn-confirm-action').addEventListener('click', () => {
+            if (confirmActionCallback) confirmActionCallback();
+            closeConfirmModal();
+        });
+
+        /* === NAVIGATION === */
+        function navigate(viewId) {
+            // Update Navigation UI
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active', 'text-brand-600');
+                el.classList.add('text-gray-500');
+                
+                // For desktop borders
+                if(window.innerWidth > 768) {
+                   el.style.borderBottom = 'none';
+                   el.style.borderLeft = 'none';
+                } else {
+                   el.style.borderBottom = 'none';
+                }
+            });
+            
+            const activeNav = document.getElementById('nav-' + viewId);
+            activeNav.classList.remove('text-gray-500');
+            activeNav.classList.add('active', 'text-brand-600');
+            
+            if(window.innerWidth > 768) {
+                activeNav.style.borderLeft = '4px solid #16a34a';
+                activeNav.style.borderBottom = 'none';
+            }
+
+            // Hide all views, show targeted view
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+
+            // Render specific view data
+            updateUI();
+        }
+
+        /* === UI RENDERERS === */
+        function updateUI() {
+            renderDashboard();
+            renderMembers();
+            renderIuran();
+            renderKocok();
+            renderRiwayat();
+        }
+
+        function renderDashboard() {
+            document.getElementById('stat-total-anggota').innerText = state.members.length;
+            
+            // Check if arisan is finished
+            const winnersCount = state.members.filter(m => m.hasWon).length;
+            const isFinished = state.members.length > 0 && winnersCount === state.members.length;
+            
+            if (isFinished) {
+                document.getElementById('stat-periode').innerText = "Selesai";
+            } else {
+                document.getElementById('stat-periode').innerText = "Ke-" + state.currentPeriod;
+            }
+
+            const paidCount = state.members.filter(m => m.hasPaidCurrent).length;
+            document.getElementById('stat-terkumpul').innerText = formatRupiah(paidCount * state.nominal);
+
+            document.getElementById('setting-nominal').innerText = formatRupiah(state.nominal);
+            document.getElementById('setting-selesai').innerText = `${winnersCount} dari ${state.members.length}`;
+        }
+
+        function renderMembers() {
+            const tbody = document.getElementById('tabel-anggota');
+            const emptyState = document.getElementById('empty-anggota');
+            
+            tbody.innerHTML = '';
+            
+            if (state.members.length === 0) {
+                emptyState.classList.remove('hidden');
+                tbody.parentElement.parentElement.classList.add('hidden'); // hide table
+            } else {
+                emptyState.classList.add('hidden');
+                tbody.parentElement.parentElement.classList.remove('hidden');
+                
+                state.members.forEach((member, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-gray-50 hover:bg-gray-50 transition-colors";
+                    
+                    const statusBadge = member.hasWon 
+                        ? `<span class="bg-brand-100 text-brand-700 text-xs px-2 py-1 rounded-full font-medium"><i class="fas fa-check-circle mr-1"></i>Sudah Menang</span>`
+                        : `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">Belum Menang</span>`;
+
+                    const deleteBtn = !member.hasWon 
+                        ? `<button onclick="hapusAnggota('${member.id}')" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition-colors" title="Hapus"><i class="fas fa-trash"></i></button>`
+                        : `<span class="text-gray-300 text-xs italic">Tidak bisa dihapus</span>`;
+
+                    tr.innerHTML = `
+                        <td class="p-4 text-gray-500">${index + 1}</td>
+                        <td class="p-4 font-medium text-gray-900">${member.name}</td>
+                        <td class="p-4">${statusBadge}</td>
+                        <td class="p-4 text-right">${deleteBtn}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function renderIuran() {
+            document.getElementById('label-periode-iuran').innerText = state.currentPeriod;
+            document.getElementById('iuran-nominal-display').innerText = formatRupiah(state.nominal);
+            
+            const container = document.getElementById('list-bayar-iuran');
+            const emptyState = document.getElementById('empty-iuran');
+            
+            container.innerHTML = '';
+            
+            // Only show members who haven't won if it's the rule, 
+            // BUT usually in Arisan everyone pays every period, even if they won.
+            if (state.members.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                let totalTerkumpul = 0;
+
+                state.members.forEach(member => {
+                    if (member.hasPaidCurrent) totalTerkumpul += state.nominal;
+
+                    const div = document.createElement('div');
+                    div.className = `p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between ${member.hasPaidCurrent ? 'border-brand-500 bg-brand-50' : 'border-gray-200 bg-white hover:border-gray-300'}`;
+                    div.onclick = () => toggleIuran(member.id);
+
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="${member.hasPaidCurrent ? 'text-brand-600' : 'text-gray-300'} text-xl transition-colors">
+                                <i class="${member.hasPaidCurrent ? 'fas fa-check-circle' : 'far fa-circle'}"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold ${member.hasPaidCurrent ? 'text-brand-800' : 'text-gray-700'}">${member.name}</p>
+                                <p class="text-xs text-gray-500">${member.hasWon ? '(Sudah Menang)' : '(Belum Menang)'}</p>
+                            </div>
+                        </div>
+                        <div class="text-sm font-medium ${member.hasPaidCurrent ? 'text-brand-600' : 'text-gray-400'}">
+                            ${member.hasPaidCurrent ? 'LUNAS' : 'BELUM'}
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                document.getElementById('iuran-terkumpul-display').innerText = formatRupiah(totalTerkumpul);
+            }
+        }
+
+        function renderKocok() {
+            document.getElementById('label-periode-kocok').innerText = state.currentPeriod;
+            
+            const badgeContainer = document.getElementById('kandidat-badges');
+            badgeContainer.innerHTML = '';
+            
+            const btnKocok = document.getElementById('btn-kocok');
+            const warningText = document.getElementById('kocok-warning');
+            
+            // Kandidat = Belum menang AND Sudah bayar iuran periode ini
+            const candidates = state.members.filter(m => !m.hasWon && m.hasPaidCurrent);
+            const everyonePaid = state.members.filter(m => m.hasPaidCurrent).length;
+
+            state.members.forEach(m => {
+                if(!m.hasWon) {
+                    const span = document.createElement('span');
+                    if(m.hasPaidCurrent) {
+                        span.className = "bg-brand-100 text-brand-700 text-xs px-3 py-1 rounded-full font-semibold border border-brand-200";
+                        span.innerText = m.name;
+                    } else {
+                        span.className = "bg-gray-100 text-gray-400 text-xs px-3 py-1 rounded-full font-medium border border-gray-200 line-through opacity-70";
+                        span.innerText = m.name;
+                        span.title = "Belum bayar iuran";
+                    }
+                    badgeContainer.appendChild(span);
+                }
+            });
+
+            if (state.members.length === 0) {
+                 warningText.innerText = "Tambahkan anggota terlebih dahulu.";
+                 warningText.classList.remove('hidden');
+                 btnKocok.disabled = true;
+            } else if (state.members.every(m => m.hasWon)) {
+                warningText.innerHTML = "<i class='fas fa-check-circle text-brand-500 mr-1'></i> Arisan telah selesai! Semua anggota sudah menang.";
+                warningText.className = "text-brand-600 font-medium text-sm mt-4 block";
+                btnKocok.disabled = true;
+                document.getElementById('slot-machine-name').innerText = "SELESAI 🎉";
+            } else if (candidates.length === 0) {
+                warningText.innerHTML = "<i class='fas fa-exclamation-triangle mr-1'></i> Tidak ada kandidat! Pastikan ada anggota yang belum menang dan sudah membayar lunas.";
+                warningText.className = "text-red-500 text-sm mt-4 block";
+                btnKocok.disabled = true;
+            } else if (everyonePaid < state.members.length) {
+                // Aturan opsional: Boleh kocok meski belum semua bayar, tapi tampilkan warning
+                warningText.innerHTML = "<i class='fas fa-info-circle mr-1'></i> Info: Belum semua anggota membayar iuran.";
+                warningText.className = "text-yellow-600 text-sm mt-4 block";
+                btnKocok.disabled = false;
+            } else {
+                warningText.classList.add('hidden');
+                btnKocok.disabled = false;
+            }
+        }
+
+        function renderRiwayat() {
+            const container = document.getElementById('timeline-riwayat');
+            const emptyState = document.getElementById('empty-riwayat');
+            
+            container.innerHTML = '';
+            
+            if (state.history.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                
+                // Urutkan dari yang terbaru (reverse)
+                const reversedHistory = [...state.history].reverse();
+
+                reversedHistory.forEach(hist => {
+                    const item = document.createElement('div');
+                    item.className = "relative pl-8 sm:pl-32 py-6 group";
+                    item.innerHTML = `
+                        <!-- Timeline Line -->
+                        <div class="font-caveat font-medium text-2xl text-brand-500 absolute left-2 sm:left-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-auto sm:w-24 text-sm sm:text-lg bg-white z-10 hidden sm:flex">
+                            Periode ${hist.period}
+                        </div>
+                        
+                        <!-- Timeline Line (Mobile) -->
+                        <div class="sm:hidden text-xs font-bold text-brand-600 mb-2 uppercase tracking-wide">
+                            Periode ${hist.period}
+                        </div>
+
+                        <!-- Timeline Dot -->
+                        <div class="absolute left-0 sm:left-24 top-8 sm:top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full bg-brand-500 border-4 border-white shadow"></div>
+                        <div class="absolute left-2 sm:left-26 top-0 bottom-0 w-0.5 bg-gray-200 -z-10 group-first:top-1/2 group-last:bottom-1/2"></div>
+
+                        <!-- Content Card -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 ml-0 sm:ml-4 hover:shadow-md transition-shadow">
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                <div>
+                                    <h4 class="text-xl font-bold text-gray-900">🏆 ${hist.winnerName}</h4>
+                                    <p class="text-sm text-gray-500 mt-1"><i class="far fa-calendar-alt mr-1"></i> ${hist.date}</p>
+                                </div>
+                                <div class="bg-green-50 px-4 py-2 rounded-lg text-center">
+                                    <p class="text-xs text-green-600 font-semibold uppercase">Mendapatkan</p>
+                                    <p class="text-lg font-bold text-green-700">${formatRupiah(hist.amount)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            }
+        }
+
+        /* === ACTIONS === */
+        function tambahAnggota() {
+            const input = document.getElementById('input-nama-anggota');
+            const name = input.value.trim();
+            
+            if (name) {
+                // Check if arisan is already running (currentPeriod > 1 or anyone has won)
+                const hasStarted = state.history.length > 0;
+                if (hasStarted) {
+                     showModal("Perhatian", "Arisan sudah berjalan. Menambah anggota baru di tengah putaran dapat memengaruhi perhitungan. Harap koordinasi dengan anggota lain.");
+                }
+
+                state.members.push({
+                    id: generateId(),
+                    name: name,
+                    hasWon: false,
+                    hasPaidCurrent: false
+                });
+                input.value = '';
+                updateUI();
+                
+                // Visual feedback
+                const btn = document.querySelector('#form-tambah-anggota button');
+                const origText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i>Tersimpan';
+                btn.classList.add('bg-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = origText;
+                    btn.classList.remove('bg-green-600');
+                }, 1500);
+            }
+        }
+
+        function hapusAnggota(id) {
+            // Find member
+            const member = state.members.find(m => m.id === id);
+            if(member && member.hasWon) {
+                showModal("Gagal", "Anggota yang sudah menang tidak dapat dihapus.");
+                return;
+            }
+            
+            showConfirmModal(
+                "Konfirmasi Hapus", 
+                `Apakah Anda yakin ingin menghapus ${member.name} dari daftar anggota?`, 
+                () => {
+                    state.members = state.members.filter(m => m.id !== id);
+                    updateUI();
+                }
+            );
+        }
+
+        function toggleIuran(id) {
+            const memberIndex = state.members.findIndex(m => m.id === id);
+            if (memberIndex > -1) {
+                state.members[memberIndex].hasPaidCurrent = !state.members[memberIndex].hasPaidCurrent;
+                updateUI();
+            }
+        }
+
+        let isSpinning = false;
+        function mulaiKocok() {
+            if (isSpinning) return;
+            
+            const candidates = state.members.filter(m => !m.hasWon && m.hasPaidCurrent);
+            if (candidates.length === 0) return;
+
+            isSpinning = true;
+            const btn = document.getElementById('btn-kocok');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Mengocok...';
+            
+            const slot = document.getElementById('slot-machine-name');
+            let duration = 3000; // 3 seconds spinning
+            let intervalTime = 50;
+            let elapsed = 0;
+            
+            // Randomly cycle through names
+            const spinInterval = setInterval(() => {
+                const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+                slot.innerText = randomCandidate.name;
+                slot.style.transform = `translateY(${Math.random() * 4 - 2}px)`; // slight shake
+                
+                elapsed += intervalTime;
+                
+                // Slow down at the end
+                if (elapsed > duration * 0.7) {
+                    clearInterval(spinInterval);
+                    slowSpin(candidates, intervalTime * 1.5, duration - elapsed, slot);
+                }
+            }, intervalTime);
+        }
+
+        function slowSpin(candidates, intervalTime, remainingDuration, slot) {
+             let elapsed = 0;
+             const slowInterval = setInterval(() => {
+                const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+                slot.innerText = randomCandidate.name;
+                
+                elapsed += intervalTime;
+                intervalTime *= 1.2; // Increase interval (slow down)
+
+                if (elapsed >= remainingDuration || intervalTime > 400) {
+                    clearInterval(slowInterval);
+                    selesaikanKocok(candidates, slot);
+                }
+             }, intervalTime);
+        }
+
+        function selesaikanKocok(candidates, slot) {
+            // Pick Final Winner
+            const winner = candidates[Math.floor(Math.random() * candidates.length)];
+            
+            // Visual Effect
+            slot.style.transform = 'translateY(0)';
+            slot.style.color = '#16a34a'; // Brand green
+            slot.style.fontSize = '3rem';
+            slot.innerText = winner.name;
+            
+            fireConfetti();
+
+            setTimeout(() => {
+                // Update State
+                // 1. Mark winner
+                const memberIndex = state.members.findIndex(m => m.id === winner.id);
+                state.members[memberIndex].hasWon = true;
+
+                // 2. Calculate Pot (Total collected this period)
+                const potAmount = state.members.filter(m => m.hasPaidCurrent).length * state.nominal;
+
+                // 3. Save to history
+                const today = new Date();
+                state.history.push({
+                    period: state.currentPeriod,
+                    winnerName: winner.name,
+                    amount: potAmount,
+                    date: today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                });
+
+                // 4. Increment Period & Reset Payments
+                state.currentPeriod++;
+                state.members.forEach(m => m.hasPaidCurrent = false);
+
+                // Show Success Modal
+                showModal("Selamat! 🎉", `${winner.name} memenangkan arisan periode ini senilai ${formatRupiah(potAmount)}!`);
+
+                // Reset UI
+                isSpinning = false;
+                const btn = document.getElementById('btn-kocok');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-random mr-2"></i> KOCOK SEKARANG!';
+                slot.style.color = ''; // reset
+                slot.style.fontSize = ''; // reset
+                slot.innerText = '❓';
+
+                updateUI();
+                navigate('riwayat'); // Auto navigate to history
+
+            }, 2000); // Wait 2s to show name before moving
+        }
+
+        /* === SETTINGS === */
+        function editSettings() {
+            document.getElementById('input-setting-nominal').value = state.nominal;
+            document.getElementById('modalSettings').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('modalSettings').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            const newNominal = document.getElementById('input-setting-nominal').value;
+            if(newNominal && newNominal > 0) {
+                state.nominal = parseInt(newNominal);
+                closeSettings();
+                updateUI();
+            } else {
+                showModal("Peringatan", "Nominal tidak valid.");
+            }
+        }
+
+        function confirmReset() {
+            closeSettings();
+            showConfirmModal(
+                "Mulai Ulang Arisan?",
+                "Ini akan menghapus semua riwayat pemenang dan mengembalikan arisan ke Putaran 1. Data nama anggota akan tetap dipertahankan. Lanjutkan?",
+                () => {
+                    state.currentPeriod = 1;
+                    state.history = [];
+                    state.members.forEach(m => {
+                        m.hasWon = false;
+                        m.hasPaidCurrent = false;
+                    });
+                    updateUI();
+                    showModal("Berhasil", "Arisan telah direset kembali ke putaran awal.");
+                }
+            );
+        }
+
+        /* === EFFECTS === */
+        function fireConfetti() {
+            const container = document.getElementById('confettiContainer');
+            container.classList.remove('hidden');
+            container.innerHTML = '';
+            
+            const colors = ['#fce18a', '#ff726d', '#b48def', '#f4306d', '#42e2b8'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                // Randomize properties
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Animation settings
+                const duration = Math.random() * 3 + 2; // 2-5s
+                confetti.style.animation = `fall ${duration}s linear forwards`;
+                
+                // Shape (some circle, some square)
+                if (Math.random() > 0.5) confetti.style.borderRadius = '50%';
+                
+                container.appendChild(confetti);
+            }
+            
+            setTimeout(() => {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            // Handle active styling for mobile resize fix
+            window.addEventListener('resize', () => {
+                const activeNav = document.querySelector('.nav-item.active');
+                if(activeNav) {
+                    if(window.innerWidth > 768) {
+                        activeNav.style.borderLeft = '4px solid #16a34a';
+                        activeNav.style.borderBottom = 'none';
+                    } else {
+                        activeNav.style.borderBottom = '2px solid #16a34a';
+                        activeNav.style.borderLeft = 'none';
+                    }
+                }
+            });
+            // initial border setup
+            const activeNav = document.querySelector('.nav-item.active');
+            if(window.innerWidth > 768) {
+                activeNav.style.borderLeft = '4px solid #16a34a';
+                activeNav.style.borderBottom = 'none';
+            }
+        });
+
+    </script>
+</body>
+</html>
